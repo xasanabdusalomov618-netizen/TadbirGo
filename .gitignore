@@ -1,0 +1,8 @@
+node_modules/
+dist/
+data/
+media/uploads/
+image-search/
+__pycache__/
+*.pyc
+.venv/
