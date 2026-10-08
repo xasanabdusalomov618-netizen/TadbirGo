@@ -64,11 +64,31 @@ export default function Footer() {
             </span>
           </div>
           <div className="mt-5 flex gap-2">
-            {[Instagram, Send, Mail].map((Icon, i) => (
-              <a key={i} href="#" className="soft-icon !h-10 !w-10 text-muted transition hover:text-accent">
-                <Icon size={16} />
-              </a>
-            ))}
+            <a
+              href="https://t.me/eventbox_uz"
+              target="_blank"
+              rel="noreferrer"
+              className="soft-icon !h-10 !w-10 text-muted transition hover:text-accent"
+              aria-label="Telegram"
+            >
+              <Send size={16} />
+            </a>
+            <a
+              href="https://instagram.com/eventbox.uz"
+              target="_blank"
+              rel="noreferrer"
+              className="soft-icon !h-10 !w-10 text-muted transition hover:text-accent"
+              aria-label="Instagram"
+            >
+              <Instagram size={16} />
+            </a>
+            <a
+              href="mailto:info@eventbox.uz"
+              className="soft-icon !h-10 !w-10 text-muted transition hover:text-accent"
+              aria-label="Email"
+            >
+              <Mail size={16} />
+            </a>
           </div>
         </div>
 

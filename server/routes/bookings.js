@@ -28,6 +28,7 @@ function serialize(row) {
       rating: row.seller_rating,
       is_premium: !!row.seller_premium,
       phone: row.seller_phone,
+      telegram: row.seller_telegram,
     },
     delivery_option: row.delivery_name
       ? { id: row.delivery_option_id, code: row.delivery_code, name_uz: row.delivery_name, name_ru: row.delivery_name_ru, name_en: row.delivery_name_en }
@@ -41,7 +42,7 @@ const SELECT_BOOKING = `
       'price', bi.price, 'price_type', bi.price_type, 'quantity', bi.quantity, 'units', bi.units, 'subtotal', bi.subtotal))
      FROM booking_items bi WHERE bi.booking_id = b.id) AS items_json,
     u.name AS customer_name, u.phone AS customer_phone, u.email AS customer_email, u.avatar_url AS customer_avatar,
-    s.business_name AS seller_name, s.slug AS seller_slug, s.logo_url AS seller_logo, s.rating AS seller_rating, s.is_premium AS seller_premium, s.phone AS seller_phone, s.user_id AS seller_user_id,
+    s.business_name AS seller_name, s.slug AS seller_slug, s.logo_url AS seller_logo, s.rating AS seller_rating, s.is_premium AS seller_premium, s.phone AS seller_phone, s.telegram AS seller_telegram, s.user_id AS seller_user_id,
     d.code AS delivery_code, d.name_uz AS delivery_name, d.name_ru AS delivery_name_ru, d.name_en AS delivery_name_en
   FROM bookings b
   JOIN users u ON u.id = b.customer_id

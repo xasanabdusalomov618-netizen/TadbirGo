@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
-  ArrowLeft, MapPin, CalendarDays, Users, Phone, Star, Wallet, Package, MessageSquare,
-  CheckCircle2, Circle, Truck, ShieldCheck,
+  ArrowLeft, MapPin, CalendarDays, Users, Phone, Star, Wallet, Package,
+  CheckCircle2, Circle, Truck, ShieldCheck, Mail, Send,
 } from 'lucide-react';
 
 import { api, errorMessage } from '../lib/api.js';
@@ -275,11 +275,22 @@ export default function BookingDetails() {
             </Link>
             <div className="mt-4 grid gap-2">
               <a href={`tel:${booking.seller?.phone || booking.customer?.phone || ''}`} className="soft-btn !py-2.5 !text-xs">
-                <Phone size={14} /> {t('seller.contactCustomer')}
+                <Phone size={14} /> {isCustomer ? t('product.contactSeller') : t('seller.contactCustomer')}
               </a>
-              <Link to="/explore" className="soft-btn !py-2.5 !text-xs">
-                <MessageSquare size={14} /> {t('product.askQuestion')}
-              </Link>
+              {isCustomer ? (
+                <a
+                  href={`https://t.me/${(booking.seller?.telegram || '').replace('@', '')}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="soft-btn !py-2.5 !text-xs"
+                >
+                  <Send size={14} /> {booking.seller?.telegram || 'Telegram'}
+                </a>
+              ) : (
+                <a href={`mailto:${booking.customer?.email || ''}`} className="soft-btn !py-2.5 !text-xs">
+                  <Mail size={14} /> {booking.customer?.email || 'Email'}
+                </a>
+              )}
             </div>
             <p className="mt-3 flex items-center gap-1.5 text-[11px] text-muted">
               <ShieldCheck size={12} style={{ color: 'var(--ok)' }} /> {t('home.adv1')}

@@ -1,6 +1,7 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { Route, Routes, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { Loader } from './components/ui.jsx';
 
 import Navbar from './components/Navbar.jsx';
 import Footer from './components/Footer.jsx';
@@ -18,12 +19,14 @@ import BookingDetails from './pages/BookingDetails.jsx';
 import SellerDashboard from './pages/SellerDashboard.jsx';
 import AddProduct from './pages/AddProduct.jsx';
 import SellerOrders from './pages/SellerOrders.jsx';
-import SellerEarnings from './pages/SellerEarnings.jsx';
 import Profile from './pages/Profile.jsx';
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
-import AdminDashboard from './pages/AdminDashboard.jsx';
 import NotFound from './pages/NotFound.jsx';
+
+// recharts is only needed on the analytics screens — load it on demand
+const SellerEarnings = lazy(() => import('./pages/SellerEarnings.jsx'));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard.jsx'));
 
 function ScrollToTop() {
   const { pathname, search } = useLocation();
@@ -54,6 +57,7 @@ export default function App() {
   return (
     <>
       <ScrollToTop />
+      <Suspense fallback={<Loader />}>
       <Routes>
         <Route path="/" element={<Layout><Home /></Layout>} />
         <Route path="/explore" element={<Layout><Explore /></Layout>} />
@@ -145,6 +149,7 @@ export default function App() {
         <Route path="/register" element={<Layout><Register /></Layout>} />
         <Route path="*" element={<Layout><NotFound /></Layout>} />
       </Routes>
+      </Suspense>
     </>
   );
 }

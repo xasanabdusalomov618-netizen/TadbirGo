@@ -61,6 +61,7 @@ function serialize(row) {
       logo_url: row.seller_logo,
       rating: row.seller_rating,
       phone: row.seller_phone,
+      telegram: row.seller_telegram,
       review_count: row.seller_review_count,
       is_premium: !!row.seller_premium,
       is_approved: !!row.seller_approved,
@@ -74,7 +75,7 @@ const SELECT_PRODUCT = `
     (SELECT json_group_array(url) FROM (SELECT url FROM product_images pi WHERE pi.product_id = p.id ORDER BY pi.sort_order, pi.id)) AS images_json,
     c.slug AS category_slug, c.name_uz AS category_uz, c.name_ru AS category_ru, c.name_en AS category_en,
     c.icon AS category_icon, c.accent AS category_accent,
-    s.business_name AS seller_name, s.slug AS seller_slug, s.city AS seller_city, s.logo_url AS seller_logo, s.phone AS seller_phone,
+    s.business_name AS seller_name, s.slug AS seller_slug, s.city AS seller_city, s.logo_url AS seller_logo, s.phone AS seller_phone, s.telegram AS seller_telegram,
     s.rating AS seller_rating, s.review_count AS seller_review_count, s.is_premium AS seller_premium,
     s.is_approved AS seller_approved, s.response_hours AS seller_response_hours
   FROM products p

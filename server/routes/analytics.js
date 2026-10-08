@@ -41,7 +41,8 @@ router.get(
         SUM(CASE WHEN status IN ('yangi','pending') THEN 1 ELSE 0 END) AS pending,
         SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) AS cancelled,
         COALESCE(SUM(CASE WHEN status = 'completed' THEN total - commission ELSE 0 END), 0) AS net_earnings,
-        COALESCE(SUM(commission), 0) AS commission_paid
+        COALESCE(SUM(CASE WHEN status = 'completed' THEN total ELSE 0 END), 0) AS gross,
+        COALESCE(SUM(CASE WHEN status = 'completed' THEN commission ELSE 0 END), 0) AS commission_paid
        FROM bookings WHERE seller_id = ?`,
       [sellerId]
     );

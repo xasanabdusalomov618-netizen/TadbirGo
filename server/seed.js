@@ -378,6 +378,19 @@ export function seed({ force = false } = {}) {
     }
   }
 
+  /**
+   * Realistic demo quantities: a wedding rents one LED wall but 200 chairs.
+   * Used only by the seeder so dashboards show believable numbers.
+   */
+  const demoQuantity = (p, guests) => {
+    if (p.priceType === 'person') return guests;
+    if (p.priceType === 'event') return 1;
+    if (p.price >= 1_000_000) return 1 + (rand() < 0.25 ? 1 : 0);
+    if (p.price >= 300_000) return between(1, 3);
+    if (p.price >= 80_000) return between(2, Math.max(3, Math.round(guests / 25)));
+    return guests;
+  };
+
   // ---- bookings across the whole lifecycle
   const eventTypes = ['wedding', 'birthday', 'corporate', 'conference', 'graduation'];
   const statuses = ['yangi', 'pending', 'confirmed', 'preparing', 'delivering', 'ongoing', 'completed', 'completed', 'completed', 'cancelled'];
@@ -389,8 +402,8 @@ export function seed({ force = false } = {}) {
     if (!sellerProducts.length) return;
     const guests = pick([80, 120, 150, 200, 250, 300]);
     const items = sellerProducts.map((p) => {
-      const quantity = p.priceType === 'person' ? guests : p.priceType === 'event' ? 1 : Math.max(1, Math.round(guests / 10));
-      const subtotal = p.priceType === 'person' ? p.price * guests : p.priceType === 'event' ? p.price * quantity : p.price * quantity;
+      const quantity = demoQuantity(p, guests);
+      const subtotal = p.price * quantity;
       return { ...p, quantity, subtotal };
     });
     const subtotal = items.reduce((s, i) => s + i.subtotal, 0);

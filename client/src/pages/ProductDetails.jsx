@@ -10,7 +10,7 @@ import { api } from '../lib/api.js';
 import { useCart } from '../context/CartContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 import ProductCard from '../components/ProductCard.jsx';
-import { Loader, Rating, QtyStepper, Breadcrumbs, Skeleton } from '../components/ui.jsx';
+import { Loader, Rating, QtyStepper, Breadcrumbs, Skeleton, Modal } from '../components/ui.jsx';
 import { money, priceUnit, formatDate, localize } from '../lib/format.js';
 import { categoryIcon } from '../lib/categoryIcons.js';
 
@@ -29,6 +29,7 @@ export default function ProductDetails() {
   const [checkDate, setCheckDate] = useState('');
   const [dateState, setDateState] = useState(null); // {available:bool}
   const [tab, setTab] = useState('description');
+  const [contactOpen, setContactOpen] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -361,16 +362,41 @@ export default function ProductDetails() {
               <a href={`tel:${product.seller?.phone || ''}`} className="soft-btn !py-2.5 !text-xs">
                 <Phone size={14} /> {t('common.phone')}
               </a>
-              <button
-                onClick={() => toast.info(t('product.askQuestion'))}
-                className="soft-btn !py-2.5 !text-xs"
-              >
+              <button onClick={() => setContactOpen(true)} className="soft-btn !py-2.5 !text-xs">
                 <Send size={14} /> {t('product.askQuestion')}
               </button>
             </div>
           </div>
         </div>
       </div>
+
+      {/* contact modal */}
+      <Modal open={contactOpen} onClose={() => setContactOpen(false)} title={t('product.contactSeller')}>
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <img src={product.seller?.logo_url} alt="" className="h-14 w-14 rounded-2xl object-cover" />
+            <div>
+              <p className="text-sm font-bold">{product.seller?.name}</p>
+              <p className="text-xs text-muted">{product.city}</p>
+            </div>
+          </div>
+
+          <a href={`tel:${product.seller?.phone || ''}`} className="soft-btn w-full !py-2.5 !text-xs">
+            <Phone size={14} /> {product.seller?.phone || '—'}
+          </a>
+          <a
+            href={`https://t.me/${(product.seller?.telegram || '').replace('@', '')}`}
+            target="_blank"
+            rel="noreferrer"
+            className="soft-btn w-full !py-2.5 !text-xs"
+          >
+            <Send size={14} /> {product.seller?.telegram || '—'}
+          </a>
+          <div className="soft-inset-sm p-3">
+            <p className="text-xs text-muted">{t('product.responseTime')}: {product.seller?.response_hours} {t('common.hours')}</p>
+          </div>
+        </div>
+      </Modal>
 
       {/* similar */}
       {similar.length > 0 && (

@@ -18,6 +18,13 @@ export default defineConfig({
   },
   build: {
     outDir: '../client/dist',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          react: ['react', 'react-dom', 'react-router-dom'],
+        },
+      },
+    },
     emptyOutDir: true,
     chunkSizeWarningLimit: 1200,
   },
