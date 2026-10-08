@@ -7,11 +7,11 @@ import { route, notFound, denied, int } from '../lib/http.js';
 const router = Router();
 
 const packageSchema = z.object({
-  name: z.string().trim().max(120).optional().or(z.literal('')),
+  name: z.string().trim().max(120).nullish(),
   event_type: z.string().trim().max(40).default('other'),
   guests: z.coerce.number().int().min(1).max(100000).default(100),
-  event_date: z.string().trim().max(20).optional().or(z.literal('')),
-  city: z.string().trim().max(60).optional().or(z.literal('')),
+  event_date: z.string().trim().max(20).nullish(),
+  city: z.string().trim().max(60).nullish(),
   budget: z.coerce.number().int().min(0).default(0),
   items: z
     .array(z.object({ product_id: z.coerce.number().int().positive(), quantity: z.coerce.number().int().min(1).default(1) }))

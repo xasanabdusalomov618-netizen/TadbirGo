@@ -39,7 +39,7 @@ const reviewSchema = z.object({
   booking_id: z.coerce.number().int().positive(),
   product_id: z.coerce.number().int().positive().optional(),
   rating: z.coerce.number().int().min(1).max(5),
-  comment: z.string().trim().max(2000).optional().or(z.literal('')),
+  comment: z.string().trim().max(2000).nullish(),
 });
 
 /** POST /api/reviews — only after a completed booking */

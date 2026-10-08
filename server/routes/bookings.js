@@ -68,19 +68,19 @@ export function lineTotal(item, guests = 0) {
 
 const createSchema = z.object({
   items: z.array(z.object({ product_id: z.coerce.number().int().positive(), quantity: z.coerce.number().int().min(1).default(1), units: z.coerce.number().min(1).default(1) })).min(1, 'cart_empty'),
-  event_date: z.string().trim().min(8).max(20).optional().or(z.literal('')),
-  end_date: z.string().trim().max(20).optional().or(z.literal('')),
+  event_date: z.string().trim().min(8).max(20).nullish(),
+  end_date: z.string().trim().max(20).nullish(),
   event_type: z.string().trim().max(40).default('other'),
   city: z.string().trim().min(2).max(60),
-  district: z.string().trim().max(80).optional().or(z.literal('')),
-  address: z.string().trim().max(300).optional().or(z.literal('')),
+  district: z.string().trim().max(80).nullish(),
+  address: z.string().trim().max(300).nullish(),
   guests: z.coerce.number().int().min(0).max(100000).default(0),
   delivery_option_id: z.coerce.number().int().optional(),
   need_installation: z.union([z.boolean(), z.coerce.number()]).default(false),
   need_pickup: z.union([z.boolean(), z.coerce.number()]).default(false),
   distance_km: z.coerce.number().min(0).max(500).default(0),
   payment_method: z.enum(['cash', 'card', 'click', 'payme']).default('cash'),
-  notes: z.string().trim().max(1000).optional().or(z.literal('')),
+  notes: z.string().trim().max(1000).nullish(),
   package_id: z.coerce.number().int().optional(),
 });
 
