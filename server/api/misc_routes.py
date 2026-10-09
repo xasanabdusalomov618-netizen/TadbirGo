@@ -1,9 +1,10 @@
 """Notifications and saved event packages."""
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, UploadFile
 from pydantic import BaseModel, Field
 
 from .. import db
 from ..auth import get_current_user
+from .seller_routes import upload_image
 
 router = APIRouter(prefix="/api", tags=["misc"])
 
@@ -22,6 +23,12 @@ class PackageIn(BaseModel):
     budget: int = 0
     total: int = 0
     items: list[PackageItem] = []
+
+
+@router.post("/uploads")
+async def upload_public(file: UploadFile = File(...), user=Depends(get_current_user)):
+    """Image upload for any signed-in user (e.g. review photos)."""
+    return await upload_image(file, user)
 
 
 @router.get("/notifications")

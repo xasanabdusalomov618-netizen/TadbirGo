@@ -5,7 +5,7 @@ import secrets
 from datetime import datetime, timedelta, timezone
 
 import jwt
-from fastapi import Depends, HTTPException, Request
+from fastapi import HTTPException, Request
 
 from . import db
 

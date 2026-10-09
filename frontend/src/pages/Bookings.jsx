@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../api';
 import { useApp, useAuth } from '../store';
-import { EmptyState, Spinner, StatusBadge, Stars } from '../components';
+import { EmptyState, PhotoField, Spinner, StatusBadge, Stars } from '../components';
 import { EVENT_TYPES, STATUS_ORDER, locName } from '../utils';
 
 const isCustomerStage = (s) => ['yangi', 'kutmoqda'].includes(s);
@@ -102,9 +102,9 @@ export function BookingDetail() {
     } catch (e) { toast(e.message, 'error'); }
   };
 
-  const submitReview = async (productId, rating, comment) => {
+  const submitReview = async (productId, rating, comment, photo = '') => {
     try {
-      await api.post('/api/reviews', { booking_id: b.id, product_id: productId, rating, comment });
+      await api.post('/api/reviews', { booking_id: b.id, product_id: productId, rating, comment, photo_url: photo });
       setReviews((r) => ({ ...r, [productId]: { rating, comment } }));
       toast(t('bookings.review.done'));
       load();
@@ -166,7 +166,7 @@ export function BookingDetail() {
                       </div>
                     );
                   }
-                  return <ReviewForm key={i.id} name={i.name} onSubmit={(rating, comment) => submitReview(i.product_id, rating, comment)} t={t} />;
+                  return <ReviewForm key={i.id} name={i.name} onSubmit={(rating, comment, photo) => submitReview(i.product_id, rating, comment, photo)} t={t} />;
                 })}
               </div>
             )}
@@ -217,6 +217,9 @@ export function BookingDetail() {
             <div className="summary-row total"><span>{t('common.total')}</span><span>{fmtMoney(b.total)}</span></div>
           </div>
 
+          {/* disputes */}
+          {(isCustomer || isSeller) && <DisputePanel b={b} isCustomer={isCustomer} onChange={setB} />}
+
           {/* actions */}
           <div className="card mt">
             <h3 className="card__title">{t('common.actions')}</h3>
@@ -246,9 +249,86 @@ export function BookingDetail() {
   );
 }
 
+const DISPUTE_REASONS = ['late_delivery', 'no_show', 'damaged', 'wrong_items', 'payment', 'other'];
+
+function DisputePanel({ b, isCustomer, onChange }) {
+  const { t, toast } = useApp();
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState('late_delivery');
+  const [description, setDescription] = useState('');
+  const [busy, setBusy] = useState(false);
+  const disputes = b.disputes || [];
+  const hasOpen = disputes.some((d) => d.status === 'open');
+  const eligible = !['yangi', 'bekor'].includes(b.status);
+
+  const submit = async () => {
+    if (description.trim().length < 5) { toast(t('dispute.needDesc'), 'error'); return; }
+    setBusy(true);
+    try {
+      const fresh = await api.post(`/api/bookings/${b.id}/dispute`, { reason, description });
+      onChange(fresh);
+      setOpen(false);
+      setDescription('');
+      toast(t('dispute.opened'));
+    } catch (e) {
+      toast(e.message, 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="card mt">
+      <div className="row-between">
+        <h3 className="card__title" style={{ margin: 0 }}>🛟 {t('dispute.title')}</h3>
+        {eligible && !hasOpen && !open && (
+          <button className="btn btn--outline btn--sm" onClick={() => setOpen(true)}>⚠️ {t('dispute.open')}</button>
+        )}
+      </div>
+
+      {disputes.length === 0 && !open && <p className="muted" style={{ fontSize: 13.5, marginTop: 10 }}>{t('dispute.none')}</p>}
+
+      {disputes.map((d) => (
+        <div key={d.id} className="dispute-item">
+          <div className="row-between">
+            <strong>{t(`dispute.reason.${d.reason}`)}</strong>
+            <span className={`tag ${d.status === 'open' ? 'tag--amber' : d.status === 'resolved' ? 'tag--green' : ''}`}>
+              {t(`dispute.status.${d.status}`)}
+            </span>
+          </div>
+          {d.description && <p className="muted" style={{ fontSize: 13.5, margin: '6px 0 0' }}>{d.description}</p>}
+          {d.resolution && <p style={{ fontSize: 13.5, margin: '6px 0 0' }}>✔ {d.resolution}</p>}
+          <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>{d.opened_by_name} · {d.created_at}</div>
+        </div>
+      ))}
+
+      {open && (
+        <div className="mt">
+          <div className="field">
+            <label>{t('dispute.reasonLabel')}</label>
+            <select className="select" value={reason} onChange={(e) => setReason(e.target.value)}>
+              {DISPUTE_REASONS.map((r) => <option key={r} value={r}>{t(`dispute.reason.${r}`)}</option>)}
+            </select>
+          </div>
+          <div className="field">
+            <label>{t('dispute.descLabel')}</label>
+            <textarea className="textarea" value={description} onChange={(e) => setDescription(e.target.value)}
+              placeholder={isCustomer ? t('dispute.phCustomer') : t('dispute.phSeller')} style={{ minHeight: 80 }} />
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn btn--primary btn--sm" onClick={submit} disabled={busy}>{t('dispute.submit')}</button>
+            <button className="btn btn--ghost btn--sm" onClick={() => setOpen(false)}>{t('common.cancel')}</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ReviewForm({ name, onSubmit, t }) {
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
+  const [photo, setPhoto] = useState('');
   return (
     <div className="card mb" style={{ background: 'var(--card-2)', padding: 14 }}>
       <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 8 }}>{name}</div>
@@ -259,7 +339,8 @@ function ReviewForm({ name, onSubmit, t }) {
       </div>
       <textarea className="textarea" placeholder={t('bookings.review.text')} value={comment}
         onChange={(e) => setComment(e.target.value)} style={{ minHeight: 60, marginBottom: 8 }} />
-      <button className="btn btn--primary btn--sm" onClick={() => onSubmit(rating, comment)}>
+      <div className="mb"><PhotoField value={photo} onChange={setPhoto} t={t} label={t('review.addPhoto')} /></div>
+      <button className="btn btn--primary btn--sm" onClick={() => onSubmit(rating, comment, photo)}>
         {t('bookings.review.submit')}
       </button>
     </div>

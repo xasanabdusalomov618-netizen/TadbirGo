@@ -290,6 +290,7 @@ export function ProductForm() {
             <select className="select" value={f.price_type} onChange={(e) => set('price_type', e.target.value)}>
               <option value="kun">{t('common.perDay')}</option>
               <option value="soat">{t('common.perHour')}</option>
+              <option value="dona">{t('common.perPiece')}</option>
               <option value="xizmat">{t('common.perService')}</option>
               <option value="to'plam">{t('common.perSet')}</option>
               <option value="kishi">{t('common.perGuest')}</option>

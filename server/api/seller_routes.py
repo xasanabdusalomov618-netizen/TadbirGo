@@ -5,13 +5,13 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from pydantic import BaseModel, Field
 
 from .. import db
-from ..auth import require_seller, seller_profile_for
+from ..auth import get_current_user, require_seller, seller_profile_for
+from ..commission import global_rate_pct
 
 router = APIRouter(prefix="/api/seller", tags=["seller"])
 
 PREMIUM_PRICE = 500_000
 FEATURE_PRICE = 100_000
-COMMISSION = 0.15
 
 
 def _profile(user):
@@ -79,7 +79,7 @@ def create_product(data: ProductIn, user=Depends(require_seller)):
     cat = db.query_one("SELECT id FROM categories WHERE id=?", (data.category_id,))
     if not cat:
         raise HTTPException(422, "Kategoriya topilmadi")
-    if data.price_type not in ("kun", "soat", "xizmat", "to'plam", "kishi"):
+    if data.price_type not in ("kun", "soat", "dona", "xizmat", "to'plam", "kishi"):
         raise HTTPException(422, "Noto'g'ri narx turi")
     pid = db.execute(
         "INSERT INTO products(seller_id,category_id,name,name_ru,name_en,description,price,price_type,location,"
@@ -150,7 +150,7 @@ def earnings(user=Depends(require_seller)):
         "gross": gross,
         "commission": commission,
         "net": gross - commission,
-        "commission_rate": COMMISSION,
+        "commission_rate": global_rate_pct() / 100,
         "payments": rows,
         "monthly": list(reversed(monthly)),
     }
@@ -184,7 +184,7 @@ def feature_product(product_id: int, user=Depends(require_seller)):
 
 
 @router.post("/upload")
-async def upload_image(file: UploadFile = File(...), user=Depends(require_seller)):
+async def upload_image(file: UploadFile = File(...), user=Depends(get_current_user)):
     import os
     import uuid
     from ..main import BASE_DIR

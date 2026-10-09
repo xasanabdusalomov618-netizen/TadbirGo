@@ -76,6 +76,7 @@ export function Register() {
   const [f, setF] = useState({
     name: '', email: '', password: '', password2: '', phone: '',
     role: 'customer', company_name: '', location: 'Toshkent', description: '',
+    tax_id: '', pinfl: '', passport: '',
   });
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -91,6 +92,7 @@ export function Register() {
       await register({
         name: f.name, email: f.email, password: f.password, phone: f.phone, role: f.role,
         company_name: f.company_name, location: f.location, description: f.description,
+        tax_id: f.tax_id, pinfl: f.pinfl, passport: f.passport,
       });
       toast(t('common.success'));
       navigate(f.role === 'seller' ? '/sotuvchi' : '/');
@@ -159,6 +161,27 @@ export function Register() {
                   <div className="field">
                     <label>{t('auth.description')}</label>
                     <input className="input" value={f.description} onChange={(e) => set('description', e.target.value)} />
+                  </div>
+                </div>
+                <div className="verify-box">
+                  <div className="verify-box__head">🛡️ {t('auth.verify.title')}</div>
+                  <p className="muted" style={{ fontSize: 13, margin: '4px 0 12px' }}>{t('auth.verify.text')}</p>
+                  <div className="form-grid">
+                    <div className="field">
+                      <label>{t('auth.verify.stir')} *</label>
+                      <input className="input" inputMode="numeric" maxLength={9} placeholder="123456789"
+                        value={f.tax_id} onChange={(e) => set('tax_id', e.target.value.replace(/\D/g, ''))} required />
+                    </div>
+                    <div className="field">
+                      <label>{t('auth.verify.pinfl')} *</label>
+                      <input className="input" inputMode="numeric" maxLength={14} placeholder="12345678901234"
+                        value={f.pinfl} onChange={(e) => set('pinfl', e.target.value.replace(/\D/g, ''))} required />
+                    </div>
+                    <div className="field">
+                      <label>{t('auth.verify.passport')} *</label>
+                      <input className="input" maxLength={9} placeholder="AA1234567"
+                        value={f.passport} onChange={(e) => set('passport', e.target.value.toUpperCase())} required />
+                    </div>
                   </div>
                 </div>
               </>

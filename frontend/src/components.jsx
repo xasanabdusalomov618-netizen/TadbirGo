@@ -358,3 +358,165 @@ export function Toasts() {
     </div>
   );
 }
+
+// ---------------------------------------------------------------
+// Count-up number (statistics counter)
+export function CountUp({ value = 0, suffix = '+', duration = 1200 }) {
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    let raf;
+    const start = performance.now();
+    const from = 0;
+    const tick = (now) => {
+      const k = Math.min(1, (now - start) / duration);
+      setN(Math.round(from + (value - from) * (1 - Math.pow(1 - k, 3))));
+      if (k < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [value, duration]);
+  return <>{n.toLocaleString('en-US').replace(/,/g, ' ')}{suffix}</>;
+}
+
+// ---------------------------------------------------------------
+// Month calendar with blocked dates (booking slot checker)
+export function Calendar({ blocked = [], value = '', onChange, minDate, rangeEnd = '', lang = 'uz', t }) {
+  const today = new Date();
+  const initial = value ? new Date(value + 'T00:00:00') : today;
+  const [view, setView] = useState({ y: initial.getFullYear(), m: initial.getMonth() });
+  const iso = (y, m, d) => `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  const todayIso = iso(today.getFullYear(), today.getMonth(), today.getDate());
+  const minIso = minDate || todayIso;
+  const locale = lang === 'ru' ? 'ru-RU' : lang === 'en' ? 'en-GB' : 'uz-UZ';
+  const monthName = new Date(view.y, view.m, 1).toLocaleDateString(locale, { month: 'long', year: 'numeric' });
+  const weekdays = Array.from({ length: 7 }, (_, i) =>
+    new Date(2024, 0, 1 + i).toLocaleDateString(locale, { weekday: 'short' }));
+  const first = new Date(view.y, view.m, 1);
+  const offset = (first.getDay() + 6) % 7; // Monday-first
+  const daysInMonth = new Date(view.y, view.m + 1, 0).getDate();
+  const blockedSet = new Set(blocked);
+
+  const cells = [];
+  for (let i = 0; i < offset; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+
+  const shift = (delta) => {
+    const d = new Date(view.y, view.m + delta, 1);
+    setView({ y: d.getFullYear(), m: d.getMonth() });
+  };
+
+  const inRange = (day) => rangeEnd && value && day > value && day <= rangeEnd;
+
+  return (
+    <div className="calendar">
+      <div className="calendar__head">
+        <button type="button" className="calendar__nav" onClick={() => shift(-1)} aria-label="prev">‹</button>
+        <strong>{monthName}</strong>
+        <button type="button" className="calendar__nav" onClick={() => shift(1)} aria-label="next">›</button>
+      </div>
+      <div className="calendar__grid">
+        {weekdays.map((w, i) => <div key={i} className="calendar__wd">{w}</div>)}
+        {cells.map((d, i) => {
+          if (!d) return <div key={`e${i}`} />;
+          const key = iso(view.y, view.m, d);
+          const isBlocked = blockedSet.has(key);
+          const isPast = key < minIso;
+          const isSel = key === value;
+          const cls = ['calendar__day',
+            isBlocked && 'is-blocked',
+            isPast && 'is-past',
+            isSel && 'is-selected',
+            key === todayIso && 'is-today',
+            inRange(key) && 'is-range',
+          ].filter(Boolean).join(' ');
+          return (
+            <button key={key} type="button" className={cls}
+              disabled={isPast || isBlocked}
+              title={isBlocked ? (t ? t('product.busyOnDate') : 'Band') : key}
+              onClick={() => onChange && onChange(key)}>
+              {d}
+            </button>
+          );
+        })}
+      </div>
+      <div className="calendar__legend">
+        <span><i className="dot dot--free" />{t ? t('calendar.free') : 'Free'}</span>
+        <span><i className="dot dot--busy" />{t ? t('calendar.busy') : 'Busy'}</span>
+        <span><i className="dot dot--sel" />{t ? t('calendar.selected') : 'Selected'}</span>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------
+// Map preview of the event location (OpenStreetMap embed, no API key)
+export function MapPreview({ city, address = '', t }) {
+  if (!city) {
+    return <div className="map-preview map-preview--empty">📍 {t ? t('checkout.map.noCity') : 'Select a city'}</div>;
+  }
+  const d = 0.06;
+  const bbox = `${city.lon - d},${city.lat - d},${city.lon + d},${city.lat + d}`;
+  const src = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${city.lat},${city.lon}`;
+  return (
+    <div className="map-preview">
+      <iframe title={city.name} src={src} loading="lazy" referrerPolicy="no-referrer" />
+      <div className="map-preview__meta">
+        <span>📍 <strong>{city.name}</strong>{address ? ` — ${address}` : ''}</span>
+        <a href={`https://www.openstreetmap.org/?mlat=${city.lat}&mlon=${city.lon}#map=13/${city.lat}/${city.lon}`}
+          target="_blank" rel="noreferrer">{t ? t('checkout.map.open') : 'Open map'} ↗</a>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------
+// Horizontal bar list (revenue breakdown)
+export function HBars({ items = [], money = true, labelKey = 'label' }) {
+  const { fmtMoney } = useApp();
+  if (!items.length) return <div className="chart-empty">—</div>;
+  const max = Math.max(...items.map((i) => i.value), 1);
+  return (
+    <div className="hbars">
+      {items.map((it) => (
+        <div key={it[labelKey]} className="hbars__row">
+          <div className="hbars__label"><span>{it.icon} {it[labelKey]}</span><strong>{money ? fmtMoney(it.value) : it.value}</strong></div>
+          <div className="hbars__track"><div className="hbars__fill" style={{ width: `${Math.max(2, (it.value / max) * 100)}%` }} /></div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------
+// Image upload field with preview (review photos, seller documents)
+export function PhotoField({ value, onChange, t, label }) {
+  const [busy, setBusy] = useState(false);
+  const { toast } = useApp();
+  const pick = async (file) => {
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { toast(t('upload.tooBig'), 'error'); return; }
+    setBusy(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await api.upload('/api/uploads', fd);
+      onChange(res.url);
+    } catch (e) {
+      toast(e.message, 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <label className="photo-field">
+      {value ? (
+        <span className="photo-field__preview"><img src={value} alt="" />
+          <button type="button" className="photo-field__remove" onClick={(e) => { e.preventDefault(); onChange(''); }}>✕</button>
+        </span>
+      ) : (
+        <span className="photo-field__empty">{busy ? '⏳' : '📷'} {label || t('upload.pick')}</span>
+      )}
+      <input type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(e) => pick(e.target.files?.[0])} />
+    </label>
+  );
+}

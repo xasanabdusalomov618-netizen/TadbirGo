@@ -215,6 +215,25 @@ CREATE TABLE IF NOT EXISTS notifications (
   created_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS disputes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  booking_id INTEGER NOT NULL REFERENCES bookings(id) ON DELETE CASCADE,
+  opened_by INTEGER NOT NULL REFERENCES users(id),
+  reason TEXT NOT NULL,
+  description TEXT DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','resolved','rejected')),
+  resolution TEXT DEFAULT '',
+  refund_amount INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  resolved_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_disputes_booking ON disputes(booking_id);
 CREATE INDEX IF NOT EXISTS idx_products_seller ON products(seller_id);
 CREATE INDEX IF NOT EXISTS idx_products_category ON products(category_id);
 CREATE INDEX IF NOT EXISTS idx_bookings_customer ON bookings(customer_id);
@@ -224,8 +243,29 @@ CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id);
 """
 
 
+# Columns added after the first release. Applied idempotently to existing databases.
+MIGRATIONS = [
+    ("categories", "commission_rate", "REAL"),
+    ("seller_profiles", "tax_id", "TEXT DEFAULT ''"),
+    ("seller_profiles", "passport", "TEXT DEFAULT ''"),
+    ("seller_profiles", "pinfl", "TEXT DEFAULT ''"),
+    ("seller_profiles", "verification_status", "TEXT NOT NULL DEFAULT 'none'"),
+    ("seller_profiles", "suspended", "INTEGER NOT NULL DEFAULT 0"),
+    ("reviews", "photo_url", "TEXT DEFAULT ''"),
+]
+
+
+def _migrate(conn: sqlite3.Connection) -> None:
+    for table, column, decl in MIGRATIONS:
+        cols = {r["name"] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()}
+        if column not in cols:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {decl}")
+
+
 def init_db() -> None:
     with _lock:
         conn = get_conn()
         conn.executescript(SCHEMA)
+        _migrate(conn)
+        conn.execute("INSERT OR IGNORE INTO settings(key,value) VALUES('commission_rate','15')")
         conn.commit()

@@ -21,27 +21,31 @@ def seed_if_empty() -> None:
 
     # ---------- Categories ----------
     categories = [
-        ("stollar", "Stol va stullar", "Столы и стулья", "Tables & chairs", "🪑", 1),
-        ("chodirlar", "Chodirlar", "Шатры и палатки", "Tents & canopies", "⛺", 2),
-        ("dekor", "Dekor", "Декор и оформление", "Decoration", "🎀", 3),
-        ("fotozona", "Fotozona", "Фотозона", "Photo zone", "📸", 4),
-        ("audio", "Kolonka va audio", "Колонки и звук", "Sound & audio", "🔊", 5),
-        ("projektor", "Projektor", "Проекторы", "Projectors", "📽️", 6),
-        ("yoruglik", "Yorug'lik", "Освещение", "Lighting", "💡", 7),
-        ("idish", "Idish-tovoqlar", "Посуда", "Tableware", "🍽️", 8),
-        ("dj", "DJ", "Диджей", "DJ", "🎧", 9),
-        ("fotograf", "Fotograf", "Фотограф", "Photographer", "📷", 10),
-        ("videograf", "Videograf", "Видеограф", "Videographer", "🎥", 11),
-        ("catering", "Catering", "Кейтеринг", "Catering", "🍢", 12),
-        ("joylar", "Event joylari", "Площадки и залы", "Event venues", "🏛️", 13),
-        ("yetkazish", "Yetkazib berish", "Доставка", "Delivery", "🚚", 14),
-        ("ornatish", "O'rnatish", "Монтаж и установка", "Installation", "🔧", 15),
+        ("stollar", "Stol va stullar", "Столы и стулья", "Tables & chairs", "🪑", 1, None),
+        ("chodirlar", "Chodirlar va naveslar", "Шатры и навесы", "Tents & canopies", "⛺", 2, 15),
+        ("dekor", "Dekor va bezaklar", "Декор и оформление", "Decor & stage design", "🎀", 3, None),
+        ("fotozona", "Fotozona va banerlar", "Фотозоны и баннеры", "Photo zones & banners", "📸", 4, None),
+        ("audio", "Kolonka va audio", "Колонки и звук", "Sound & audio", "🔊", 5, None),
+        ("projektor", "Projektor va LED ekranlar", "Проекторы и LED-экраны", "Projectors & LED screens", "📽️", 6, None),
+        ("yoruglik", "Yorug'lik chiroqlari", "Световые эффекты", "Lighting & effects", "💡", 7, None),
+        ("idish", "Idish-tovoqlar va servirovka", "Посуда и сервировка", "Tableware & serving", "🍽️", 8, 10),
+        ("boshlovchi", "Boshlovchi va showman", "Ведущие и шоумены", "MCs & showmen", "🎤", 9, None),
+        ("dj", "DJ va musiqachilar", "DJ и музыканты", "DJs & live bands", "🎧", 10, 12),
+        ("fotograf", "Fotograf", "Фотограф", "Photographer", "📷", 11, 20),
+        ("videograf", "Videograf", "Видеограф", "Videographer", "🎥", 12, None),
+        ("animator", "Animatorlar va shouchilar", "Аниматоры и шоу", "Animators & performers", "🤹", 13, None),
+        ("xizmatchi", "Hizmatchilar va ofitsiantlar", "Официанты и персонал", "Waiters, security & hostesses", "🤵", 14, None),
+        ("catering", "Catering va oshxona", "Кейтеринг и кухня", "Catering & kitchen", "🍢", 15, 12),
+        ("joylar", "Event joylari va restoranlar", "Площадки и рестораны", "Event venues & restaurants", "🏛️", 16, 18),
+        ("yetkazish", "Yetkazib berish", "Доставка", "Delivery", "🚚", 17, None),
+        ("ornatish", "O'rnatish va montaj", "Монтаж и установка", "Setup & installation", "🔧", 18, None),
     ]
     cat_ids = {}
-    for slug, uz, ru, en, icon, sort in categories:
+    for slug, uz, ru, en, icon, sort, rate in categories:
+        # rate = category-specific commission override (%), None = global rate
         cat_ids[slug] = db.execute(
-            "INSERT INTO categories(slug,name_uz,name_ru,name_en,icon,sort) VALUES(?,?,?,?,?,?)",
-            (slug, uz, ru, en, icon, sort),
+            "INSERT INTO categories(slug,name_uz,name_ru,name_en,icon,sort,commission_rate) VALUES(?,?,?,?,?,?,?)",
+            (slug, uz, ru, en, icon, sort, rate),
         )
 
     # ---------- Delivery options ----------
@@ -64,7 +68,7 @@ def seed_if_empty() -> None:
             (name, email, hash_password("tadbir123"), phone, role, _dt(-120)),
         )
 
-    admin_id = db.execute(
+    db.execute(
         "INSERT INTO users(name,email,password_hash,phone,role,created_at) VALUES(?,?,?,?,?,?)",
         ("TadbirGo Admin", "admin@tadbirgo.uz", hash_password("admin123"), "+998 90 000 00 00", "admin", _dt(-180)),
     )
@@ -89,15 +93,20 @@ def seed_if_empty() -> None:
         ("Shohruh Mirzayev", "seller9@tadbirgo.uz", "MegaPro Audio", "Konsert darajasidagi audio tizimlar, DJ va projektor xizmatlari.", "Toshkent", 1),
         ("Farrux Abdullayev", "seller10@tadbirgo.uz", "Green Garden Hall", "Zamonaviy bayram zallari va ochiq maydonlar. 500 kishigacha sig'im.", "Toshkent", 1),
         ("Timur Xolmatov", "seller11@tadbirgo.uz", "Navro'z Chodirlari", "Yangi sotuvchi. Tasdiqlash kutilmoqda.", "Samarqand", 0),
+        ("Sherzod Tursunov", "seller12@tadbirgo.uz", "Showman Tashkent", "Toy va korporativ boshlovchilar, animatorlar va raqqosalar guruhi. Tajribali showmenlar.", "Toshkent", 1),
+        ("Dilnoza Ergasheva", "seller13@tadbirgo.uz", "Ideal Staff Service", "Ofitsiantlar, xavfsizlik xodimlari va hostesslar. Har bir tadbir uchun tayyor jamoa.", "Toshkent", 1),
     ]
     seller_ids = {}
-    for name, email, company, desc, loc, approved in sellers:
+    for n, (name, email, company, desc, loc, approved) in enumerate(sellers):
         uid = mk_user(name, email, "+998 90 100 20 30", "seller")
         sid = db.execute(
-            "INSERT INTO seller_profiles(user_id,company_name,description,location,phone,approved,premium_until,rating,rating_count,created_at)"
-            " VALUES(?,?,?,?,?,?,?,?,?,?)",
+            "INSERT INTO seller_profiles(user_id,company_name,description,location,phone,approved,premium_until,rating,rating_count,created_at,"
+            "tax_id,pinfl,passport,verification_status)"
+            " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (uid, company, desc, loc, "+998 90 100 20 30", approved,
-             _d(30) if approved in (1, 3) else None, 0, 0, _dt(-100)),
+             _d(30) if approved in (1, 3) else None, 0, 0, _dt(-100),
+             f"30{4100000 + n * 137}", f"3{n:02d}{9000000000 + n * 7919}"[:14].ljust(14, "0"),
+             f"AB{1000000 + n * 311}", "verified" if approved else "pending"),
         )
         seller_ids[company] = sid
 
@@ -166,6 +175,43 @@ def seed_if_empty() -> None:
         ("O'rnatish brigadasi", "Бригада монтажников", "Installation crew",
          "Professional montaj jamoasi: chodir, sahna, yoritish va boshqa jihozlarni o'rnatish va yig'ishtirish.",
          "ornatish", "Baxtli To'y Service", 500000, "xizmat", "Toshkent", 1, "", 4.7),
+        # ---- hosts, performers, staff, and extra equipment ----
+        ("Boshlovchi (to'y MC)", "Ведущий свадьбы", "Wedding MC",
+         "Tajribali to'y boshlovchisi. O'zbek va rus tillarida, 4 soatlik dastur, konkurs va tabriklar bilan.",
+         "boshlovchi", "Showman Tashkent", 3000000, "xizmat", "Toshkent", 3, "", 4.9),
+        ("Korporativ boshlovchi (2 tilda)", "Корпоративный ведущий (2 языка)", "Corporate MC (bilingual)",
+         "Konferensiya va korporativ tadbirlar uchun ikki tilli boshlovchi. Soatiga hisoblanadi, kamida 3 soat.",
+         "boshlovchi", "Showman Tashkent", 500000, "soat", "Toshkent", 5, "", 4.8),
+        ("Animator va bolalar shou (2 soat)", "Аниматор и детское шоу (2 часа)", "Animator & kids show (2h)",
+         "Bolalar uchun interaktiv shou: sehrgarlik, konkurslar, baloonlar haykali va o'yinlar.",
+         "animator", "Showman Tashkent", 1500000, "xizmat", "Toshkent", 4, "", 4.7),
+        ("Raqqosalar guruhi (4 kishi)", "Группа танцовщиц (4 чел.)", "Dance troupe (4 dancers)",
+         "Milliy va zamonaviy raqs shou-dasturi. Kostyumlar va sahna chiqishi kiritilgan.",
+         "animator", "Showman Tashkent", 2400000, "xizmat", "Toshkent", 2, "", 4.9),
+        ("Ofitsiant (soatiga)", "Официант (в час)", "Waiter (per hour)",
+         "Malakali ofitsiant, oq ko'ylak va kapalak. Kamida 4 soat, 1 ofitsiant = 1 soat hisobida.",
+         "xizmatchi", "Ideal Staff Service", 60000, "soat", "Toshkent", 60, "", 4.6),
+        ("Xavfsizlik qo'riqchisi (soatiga)", "Охранник (в час)", "Security guard (per hour)",
+         "Tadbir xavfsizligi uchun litsenziyali qo'riqchilar. Mehmonlar va jihozlar nazorati.",
+         "xizmatchi", "Ideal Staff Service", 80000, "soat", "Toshkent", 20, "", 4.7),
+        ("Hostes — mehmonlarni kutib olish", "Хостес (встреча гостей)", "Hostess (guest greeting)",
+         "Mehmonlarni kutib olish, ro'yxatdan o'tkazish va zal bo'ylab yo'naltirish.",
+         "xizmatchi", "Ideal Staff Service", 70000, "soat", "Toshkent", 10, "", 4.5),
+        ("Jonli musiqa guruhi (5 kishi)", "Живая музыкальная группа (5 чел.)", "Live band (5 musicians)",
+         "Jonli ijro: klavishlar, gitara, bas, barabanlar va vokal. Milliy va pop repertuar.",
+         "dj", "MegaPro Audio", 4000000, "xizmat", "Toshkent", 1, "dj.jpg", 4.8),
+        ("LED ekran 4x3 metr", "LED-экран 4x3 м", "LED screen 4x3 m",
+         "P3.9 yuqori yorqinlikdagi LED ekran, sahna orqasi va kontent boshqaruvi kiritilgan.",
+         "projektor", "MegaPro Audio", 1800000, "kun", "Toshkent", 1, "projektor.jpg", 4.7),
+        ("Naves 6x8 metr", "Навес 6x8 м", "Canopy 6x8 m",
+         "Mustahkam alyuminiy karkasli naves. Yomg'ir va quyoshdan himoya, Andijon bo'ylab yetkazish.",
+         "chodirlar", "Andijon Bayram Xizmatlari", 900000, "kun", "Andijon", 4, "chodir.jpg", 4.5),
+        ("Chiavari stul (oltin)", "Стул Chiavari (золотой)", "Chiavari chair (gold)",
+         "Oltin rangli Chiavari stul. Tadbir uslubiga mos, dona hisobida ijaraga beriladi.",
+         "stollar", "Baxtli To'y Service", 50000, "dona", "Toshkent", 300, "stollar2.jpg", 4.9),
+        ("Bannerlar to'plami (5 dona)", "Набор баннеров (5 шт.)", "Banner set (5 pcs)",
+         "Xayrli to'y, tabriklar va brend bannerlari. Har biri 1x2 metr, chop etilgan.",
+         "fotozona", "Royal Events Buxoro", 150000, "dona", "Buxoro", 40, "fotozona.jpg", 4.4),
     ]
     prod_ids = {}
     for i, (uz, ru, en, desc, slug, seller, price, ptype, loc, qty, img, rating) in enumerate(products):
@@ -195,7 +241,9 @@ def seed_if_empty() -> None:
                         ("Banquet stuli (yumshoq)", [4, 5, 12]),
                         ("To'y chodiri (300 o'rin)", [7, 8, 21]),
                         ("To'y fotografi (1 kun)", [6, 13, 14]),
-                        ("Professional DJ", [13])]:
+                        ("Professional DJ", [13]),
+                        ("Animator va bolalar shou (2 soat)", [9, 10]),
+                        ("Boshlovchi (to'y MC)", [16, 17])]:
         pid = prod_ids[pname]
         for d in days:
             db.execute("INSERT OR IGNORE INTO availability(product_id,blocked_date) VALUES(?,?)", (pid, _d(d)))
@@ -260,6 +308,11 @@ def seed_if_empty() -> None:
     b6 = mk_booking("TG-251006", customer2_id, seller_ids["Samarqand Chodir Markazi"], _d(1), "toy", "Samarqand", 250, 3500000, 0, 400000, 0, "ornatilmoqda", _dt(-9))
     mk_item(b6, "To'y chodiri (300 o'rin)", 1)
     mk_payment(b6, customer2_id, 3900000, "paid", _dt(-9))
+
+    db.execute(
+        "INSERT INTO disputes(booking_id,opened_by,reason,description,status,created_at) VALUES(?,?,?,?,'open',?)",
+        (b6, customer2_id, "late_delivery",
+         "Chodir rejalashtirilgan vaqtdan 3 soat kech yetkazildi. Mehmonlar kutib turishdi.", _dt(-1)))
 
     # Historic paid bookings for revenue chart
     hist = [
