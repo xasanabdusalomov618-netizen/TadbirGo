@@ -1,0 +1,260 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================================================
+   EventBox UZ — Soft UI (neumorphic) design tokens
+   ========================================================================== */
+:root {
+  --bg: #eef1f7;
+  --surface: #eef1f7;
+  --surface-2: #e6eaf3;
+  --sd: #c7ccdb;
+  --sl: #ffffff;
+  --text: #1c2333;
+  --muted: #6a7490;
+  --line: #d8dfea;
+  --accent: #5b62f4;
+  --accent-2: #8b5cf6;
+  --accent-soft: #e9eaff;
+  --accent-glow: rgba(99, 102, 241, 0.32);
+  --ok: #16a34a;
+  --warn: #ea9c0b;
+  --danger: #e5484d;
+  --shadow-strength: 1;
+}
+
+[data-theme='dark'] {
+  --bg: #161922;
+  --surface: #1b1f2a;
+  --surface-2: #212735;
+  --sd: #0d1017;
+  --sl: #282f3f;
+  --text: #eef1f8;
+  --muted: #98a2b8;
+  --line: #2a3140;
+  --accent: #7c83ff;
+  --accent-2: #a78bfa;
+  --accent-soft: #232a45;
+  --accent-glow: rgba(124, 131, 255, 0.4);
+  --ok: #3dd68c;
+  --warn: #f5b544;
+  --danger: #ff6b6b;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Plus Jakarta Sans', Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.35s ease, color 0.35s ease;
+}
+
+::selection {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* scrollbars ------------------------------------------------------------- */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 999px;
+  border: 3px solid var(--bg);
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@layer components {
+  /* ---------------------------------------------------------- soft cards */
+  .soft {
+    @apply rounded-soft bg-surface;
+    box-shadow: 6px 6px 14px var(--sd), -6px -6px 14px var(--sl);
+    transition: box-shadow 0.25s ease, transform 0.25s ease, background-color 0.35s ease;
+  }
+  .soft-sm {
+    @apply rounded-2xl bg-surface;
+    box-shadow: 3px 3px 8px var(--sd), -3px -3px 8px var(--sl);
+    transition: box-shadow 0.25s ease, transform 0.25s ease;
+  }
+  .soft-lg {
+    @apply rounded-soft-lg bg-surface;
+    box-shadow: 14px 14px 30px var(--sd), -12px -12px 30px var(--sl);
+  }
+  .soft-inset {
+    @apply rounded-2xl bg-surface;
+    box-shadow: inset 4px 4px 9px var(--sd), inset -4px -4px 9px var(--sl);
+  }
+  .soft-inset-sm {
+    @apply rounded-xl bg-surface;
+    box-shadow: inset 2px 2px 5px var(--sd), inset -2px -2px 5px var(--sl);
+  }
+  .soft-flat {
+    @apply rounded-soft bg-surface2;
+  }
+
+  /* -------------------------------------------------------- soft buttons */
+  .soft-btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-semibold;
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: 5px 5px 12px var(--sd), -5px -5px 12px var(--sl);
+    transition: all 0.22s ease;
+  }
+  .soft-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 8px 8px 18px var(--sd), -8px -8px 18px var(--sl);
+  }
+  .soft-btn:active {
+    transform: translateY(0);
+    box-shadow: inset 4px 4px 9px var(--sd), inset -4px -4px 9px var(--sl);
+  }
+  .soft-btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-bold text-white;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    box-shadow: 6px 6px 16px var(--accent-glow), inset 1px 1px 1px rgba(255, 255, 255, 0.28);
+    transition: all 0.22s ease;
+  }
+  .soft-btn-primary:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.06);
+    box-shadow: 10px 10px 26px var(--accent-glow), inset 1px 1px 1px rgba(255, 255, 255, 0.3);
+  }
+  .soft-btn-primary:active {
+    transform: translateY(0) scale(0.99);
+  }
+  .soft-btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-semibold;
+    background: transparent;
+    color: var(--muted);
+    transition: all 0.2s ease;
+  }
+  .soft-btn-ghost:hover {
+    color: var(--accent);
+    box-shadow: inset 3px 3px 7px var(--sd), inset -3px -3px 7px var(--sl);
+  }
+  .soft-btn-danger {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-semibold;
+    color: var(--danger);
+    background: var(--surface);
+    box-shadow: 4px 4px 10px var(--sd), -4px -4px 10px var(--sl);
+    transition: all 0.22s ease;
+  }
+  .soft-btn-danger:hover {
+    box-shadow: inset 3px 3px 8px var(--sd), inset -3px -3px 8px var(--sl);
+  }
+
+  /* --------------------------------------------------------- soft inputs */
+  .soft-input {
+    @apply w-full rounded-2xl border-0 bg-surface px-4 py-3 text-sm outline-none;
+    color: var(--text);
+    box-shadow: inset 4px 4px 9px var(--sd), inset -4px -4px 9px var(--sl);
+    transition: box-shadow 0.2s ease;
+  }
+  .soft-input::placeholder {
+    color: var(--muted);
+    opacity: 0.75;
+  }
+  .soft-input:focus {
+    box-shadow: inset 4px 4px 9px var(--sd), inset -4px -4px 9px var(--sl), 0 0 0 2px var(--accent-glow);
+  }
+  select.soft-input {
+    appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+      linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+    background-position: calc(100% - 20px) calc(50% + 2px), calc(100% - 14px) calc(50% + 2px);
+    background-size: 6px 6px, 6px 6px;
+    background-repeat: no-repeat;
+    padding-right: 40px;
+  }
+  .soft-label {
+    @apply mb-1.5 block text-xs font-semibold uppercase tracking-wider;
+    color: var(--muted);
+  }
+
+  /* ----------------------------------------------------------- soft bits */
+  .soft-chip {
+    @apply inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-semibold transition-all;
+    background: var(--surface);
+    color: var(--muted);
+    box-shadow: 3px 3px 7px var(--sd), -3px -3px 7px var(--sl);
+  }
+  .soft-chip-active {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #fff;
+    box-shadow: 4px 4px 12px var(--accent-glow);
+  }
+  .soft-badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold;
+  }
+  .soft-icon {
+    @apply grid h-11 w-11 place-items-center rounded-2xl;
+    background: var(--surface);
+    box-shadow: 4px 4px 9px var(--sd), -4px -4px 9px var(--sl);
+  }
+  .soft-divider {
+    height: 2px;
+    border-radius: 999px;
+    background: var(--surface);
+    box-shadow: inset 1px 1px 2px var(--sd), inset -1px -1px 2px var(--sl);
+  }
+  .gradient-text {
+    background: linear-gradient(120deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .skeleton {
+    background: linear-gradient(90deg, var(--surface-2) 25%, var(--line) 50%, var(--surface-2) 75%);
+    background-size: 200% 100%;
+    @apply animate-shimmer rounded-2xl;
+  }
+  .card-hover:hover {
+    transform: translateY(-4px);
+  }
+  .link-soft {
+    color: var(--accent);
+    @apply font-semibold;
+  }
+  .link-soft:hover {
+    text-decoration: underline;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  .pb-safe {
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 0.5rem);
+  }
+}
+
+input[type='date'],
+input[type='datetime-local'] {
+  color-scheme: light;
+}
+[data-theme='dark'] input[type='date'],
+[data-theme='dark'] input[type='datetime-local'] {
+  color-scheme: dark;
+}
