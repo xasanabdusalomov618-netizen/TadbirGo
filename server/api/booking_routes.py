@@ -4,10 +4,11 @@ from pydantic import BaseModel, Field
 
 from .. import db
 from ..auth import get_current_user, require_seller
+from ..commission import blended_rate_pct, booking_commission, global_rate_pct
 
 router = APIRouter(prefix="/api", tags=["bookings"])
 
-COMMISSION = 0.15
+DISPUTE_REASONS = {"no_show", "damaged", "late_delivery", "wrong_items", "payment", "other"}
 
 STATUS_FLOW = {
     "yangi": ["bekor"],
@@ -57,6 +58,25 @@ class ReviewIn(BaseModel):
     product_id: int
     rating: int = Field(ge=1, le=5)
     comment: str = ""
+    photo_url: str = ""
+
+
+class DisputeIn(BaseModel):
+    reason: str
+    description: str = Field("", max_length=1000)
+
+
+def _notify(user_id: int, kind: str, text: str, link: str = "") -> None:
+    db.execute("INSERT INTO notifications(user_id,kind,text,link,created_at) VALUES(?,?,?,?,?)",
+               (user_id, kind, text, link, db.now()))
+
+
+def serialize_disputes(booking_id: int) -> list:
+    return db.query(
+        """SELECT d.id, d.reason, d.description, d.status, d.resolution, d.refund_amount,
+                  d.created_at, d.resolved_at, u.name AS opened_by_name, d.opened_by
+           FROM disputes d JOIN users u ON u.id = d.opened_by
+           WHERE d.booking_id=? ORDER BY d.id DESC""", (booking_id,))
 
 
 def booking_seller_name(bid_seller: int) -> str:
@@ -90,6 +110,8 @@ def serialize_booking(b: dict, with_items: bool = False, user=None) -> dict:
             out["reviewed_products"] = list(reviewed)
             out["reviews"] = db.query(
                 "SELECT * FROM reviews WHERE booking_id=?", (b["id"],))
+    if with_items and user:  # detail views only; access is checked by the caller
+        out["disputes"] = serialize_disputes(b["id"])
     return out
 
 
@@ -105,7 +127,8 @@ def checkout(data: CheckoutIn, user=Depends(get_current_user)):
     products = {}
     for item in data.items:
         p = db.query_one("SELECT * FROM products WHERE id=?", (item.product_id,))
-        if not p or not p["approved"] or not p["available"]:
+        seller_row = db.query_one("SELECT suspended FROM seller_profiles WHERE id=?", (p["seller_id"],)) if p else None
+        if not p or not p["approved"] or not p["available"] or (seller_row and seller_row["suspended"]):
             raise HTTPException(422, f"Mahsulot (id={item.product_id}) hozirda mavjud emas")
         if item.quantity > p["quantity"]:
             raise HTTPException(422, f"«{p['name']}» uchun yetarli miqdor yo'q (mavjud: {p['quantity']})")
@@ -159,7 +182,7 @@ def checkout(data: CheckoutIn, user=Depends(get_current_user)):
         db.execute(
             "INSERT INTO payments(booking_id,user_id,kind,amount,commission_rate,commission,method,status,created_at)"
             " VALUES(?,?,?,?,?,?,?,?,?)",
-            (bid, user["id"], "booking", total, COMMISSION, 0, "", "pending", db.now()))
+            (bid, user["id"], "booking", total, global_rate_pct() / 100, 0, "", "pending", db.now()))
         srow = db.query_one("SELECT user_id, company_name FROM seller_profiles WHERE id=?", (seller_id,))
         if srow:
             db.execute("INSERT INTO notifications(user_id,kind,text,link,created_at) VALUES(?,?,?,?,?)",
@@ -212,8 +235,8 @@ def pay_booking(booking_id: int, data: PayIn, user=Depends(get_current_user)):
     if not payment or payment["status"] == "paid":
         raise HTTPException(400, "To'lov topilmadi yoki allaqachon to'langan")
     method = data.method if data.method in ("click", "payme", "naqd") else "click"
-    db.execute("UPDATE payments SET status='paid', method=?, commission=? WHERE id=?",
-               (method, round(b["total"] * COMMISSION), payment["id"]))
+    db.execute("UPDATE payments SET status='paid', method=?, commission=?, commission_rate=? WHERE id=?",
+               (method, booking_commission(booking_id), blended_rate_pct(booking_id) / 100, payment["id"]))
     db.execute("UPDATE bookings SET status='kutmoqda' WHERE id=?", (booking_id,))
     srow = db.query_one("SELECT user_id FROM seller_profiles WHERE id=?", (b["seller_id"],))
     if srow:
@@ -261,6 +284,37 @@ def update_status(booking_id: int, data: StatusIn, user=Depends(require_seller))
     return serialize_booking(fresh, user=user)
 
 
+@router.post("/bookings/{booking_id}/dispute")
+def open_dispute(booking_id: int, data: DisputeIn, user=Depends(get_current_user)):
+    b = db.query_one("SELECT * FROM bookings WHERE id=?", (booking_id,))
+    if not b:
+        raise HTTPException(404, "Buyurtma topilmadi")
+    prof = db.query_one("SELECT id FROM seller_profiles WHERE user_id=?", (user["id"],))
+    is_party = b["customer_id"] == user["id"] or (prof is not None and prof["id"] == b["seller_id"])
+    if not is_party:
+        raise HTTPException(403, "Bu buyurtma bo'yicha nizo ochishga ruxsat yo'q")
+    if data.reason not in DISPUTE_REASONS:
+        raise HTTPException(422, "Noto'g'ri sabab")
+    if b["status"] in ("yangi", "bekor"):
+        raise HTTPException(400, "Bu holatda nizo ochib bo'lmaydi")
+    if db.query_one("SELECT id FROM disputes WHERE booking_id=? AND status='open'", (booking_id,)):
+        raise HTTPException(400, "Bu buyurtma bo'yicha ochiq nizo mavjud")
+    db.execute(
+        "INSERT INTO disputes(booking_id,opened_by,reason,description,status,created_at) VALUES(?,?,?,?,'open',?)",
+        (booking_id, user["id"], data.reason, data.description.strip(), db.now()))
+    link = f"/buyurtma/{booking_id}"
+    if user["id"] != b["customer_id"]:
+        _notify(b["customer_id"], "dispute", f"{b['code']} bo'yicha nizo ochildi. Admin ko'rib chiqadi.", link)
+    if prof is None or prof["id"] != b["seller_id"]:
+        srow = db.query_one("SELECT user_id FROM seller_profiles WHERE id=?", (b["seller_id"],))
+        if srow:
+            _notify(srow["user_id"], "dispute", f"{b['code']} bo'yicha nizo ochildi. Admin ko'rib chiqadi.", link)
+    for a in db.query("SELECT id FROM users WHERE role='admin'"):
+        _notify(a["id"], "dispute", f"Yangi nizo: {b['code']}", "/admin")
+    return serialize_booking(db.query_one("SELECT * FROM bookings WHERE id=?", (booking_id,)),
+                             with_items=True, user=user)
+
+
 @router.post("/reviews")
 def create_review(data: ReviewIn, user=Depends(get_current_user)):
     b = db.query_one("SELECT * FROM bookings WHERE id=?", (data.booking_id,))
@@ -276,9 +330,12 @@ def create_review(data: ReviewIn, user=Depends(get_current_user)):
                           (data.booking_id, data.product_id))
     if exists:
         raise HTTPException(400, "Bu mahsulotga allaqachon sharh qoldirilgan")
+    photo = data.photo_url.strip()
+    if photo and not photo.startswith("/media/uploads/"):
+        raise HTTPException(422, "Rasm manzili noto'g'ri")
     db.execute(
-        "INSERT INTO reviews(booking_id,customer_id,seller_id,product_id,rating,comment,created_at) VALUES(?,?,?,?,?,?,?)",
-        (data.booking_id, user["id"], b["seller_id"], data.product_id, data.rating, data.comment.strip(), db.now()))
+        "INSERT INTO reviews(booking_id,customer_id,seller_id,product_id,rating,comment,photo_url,created_at) VALUES(?,?,?,?,?,?,?,?)",
+        (data.booking_id, user["id"], b["seller_id"], data.product_id, data.rating, data.comment.strip(), photo, db.now()))
     # recompute product rating
     agg = db.query_one("SELECT ROUND(AVG(rating),2) AS r, COUNT(*) AS n FROM reviews WHERE product_id=?",
                        (data.product_id,))
@@ -302,7 +359,7 @@ def create_review(data: ReviewIn, user=Depends(get_current_user)):
 @router.get("/products/{product_id}/reviews")
 def product_reviews(product_id: int):
     rows = db.query(
-        """SELECT r.id, r.rating, r.comment, r.created_at, u.name AS customer_name
+        """SELECT r.id, r.rating, r.comment, r.photo_url, r.created_at, u.name AS customer_name
            FROM reviews r JOIN users u ON u.id = r.customer_id
            WHERE r.product_id = ? ORDER BY r.created_at DESC""", (product_id,))
     return {"items": rows}

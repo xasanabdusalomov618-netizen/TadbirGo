@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../api';
 import { useApp, useAuth, useCart } from '../store';
-import { EmptyState, Price, ProductCard, ProductImage, QtyInput, Spinner, Stars } from '../components';
+import { Calendar, EmptyState, Price, ProductCard, ProductImage, QtyInput, Spinner, Stars } from '../components';
 import { locCat, locName } from '../utils';
 
 // =================================================================
@@ -19,6 +19,8 @@ export function Explore() {
   const category = params.get('category') || '';
   const location = params.get('location') || '';
   const date = params.get('date') || '';
+  const dateTo = params.get('date_to') || '';
+  const minRating = params.get('rating') || '';
   const minPrice = params.get('min') || '';
   const maxPrice = params.get('max') || '';
   const sort = params.get('sort') || 'popular';
@@ -35,12 +37,14 @@ export function Explore() {
     if (category) qs.set('category', category);
     if (location) qs.set('location', location);
     if (date) qs.set('date', date);
+    if (dateTo) qs.set('date_to', dateTo);
+    if (minRating) qs.set('min_rating', minRating);
     if (minPrice) qs.set('min_price', minPrice);
     if (maxPrice) qs.set('max_price', maxPrice);
     qs.set('sort', sort);
     qs.set('limit', '24');
     api.get(`/api/products?${qs.toString()}`).then(setData).catch(() => setData({ items: [], total: 0 }));
-  }, [q, category, location, date, minPrice, maxPrice, sort]);
+  }, [q, category, location, date, dateTo, minRating, minPrice, maxPrice, sort]);
 
   const setParam = (k, v) => {
     const next = new URLSearchParams(params);
@@ -78,10 +82,21 @@ export function Explore() {
           <span className="muted">—</span>
           <input className="input" type="number" placeholder={t('common.max')}
             value={maxPrice} onChange={(e) => setParam('max', e.target.value)} style={{ maxWidth: 150 }} />
-          <div title={t('catalog.dateHint')}>
-            <input className="input" type="date" value={date} onChange={(e) => setParam('date', e.target.value)}
-              title={t('catalog.dateHint')} />
+          <div className="date-range" title={t('catalog.dateHint')}>
+            <label><span>{t('catalog.dateFrom')}</span>
+              <input className="input" type="date" value={date} onChange={(e) => setParam('date', e.target.value)} />
+            </label>
+            <label><span>{t('catalog.dateTo')}</span>
+              <input className="input" type="date" value={dateTo} min={date || undefined}
+                onChange={(e) => setParam('date_to', e.target.value)} />
+            </label>
           </div>
+          <select className="select" value={minRating} onChange={(e) => setParam('rating', e.target.value)}>
+            <option value="">⭐ {t('catalog.ratingAny')}</option>
+            <option value="4">⭐ 4+</option>
+            <option value="4.5">⭐ 4.5+</option>
+            <option value="4.8">⭐ 4.8+</option>
+          </select>
           <select className="select" value={sort} onChange={(e) => setParam('sort', e.target.value)}>
             <option value="popular">{t('catalog.sort')}: {t('catalog.sort.popular')}</option>
             <option value="new">{t('catalog.sort.new')}</option>
@@ -89,13 +104,13 @@ export function Explore() {
             <option value="price_desc">{t('catalog.sort.price_desc')}</option>
             <option value="rating">{t('catalog.sort.rating')}</option>
           </select>
-          {(category || location || date || minPrice || maxPrice || q) && (
+          {(category || location || date || dateTo || minRating || minPrice || maxPrice || q) && (
             <button className="btn btn--ghost btn--sm" onClick={() => setParams({}, { replace: true })}>
               ✕ {t('common.reset')}
             </button>
           )}
         </div>
-        {date && <div className="muted" style={{ fontSize: 13 }}>📅 {t('catalog.dateHint')}: <strong>{date}</strong></div>}
+        {date && <div className="muted" style={{ fontSize: 13 }}>📅 {t('catalog.dateHint')}: <strong>{date}{dateTo ? ` → ${dateTo}` : ''}</strong></div>}
       </div>
 
       {!data ? <Spinner big /> : data.items.length === 0 ? (
@@ -232,6 +247,7 @@ export function ProductDetail() {
                     <span className="review__date">{new Date(r.created_at.replace(' ', 'T')).toLocaleDateString()}</span>
                   </div>
                   {r.comment && <p className="review__text">{r.comment}</p>}
+                  {r.photo_url && <img className="review__photo" src={r.photo_url} alt="" loading="lazy" />}
                 </div>
               ))
             )}
@@ -256,7 +272,7 @@ export function ProductDetail() {
 
             <div className="field">
               <label>📅 {t('product.checkAvailability')}</label>
-              <input type="date" className="input" value={date} min={today} onChange={(e) => setDate(e.target.value)} />
+              <Calendar blocked={p.blocked_dates} value={date} onChange={setDate} lang={lang} t={t} />
               {availability !== null && (
                 <div style={{ marginTop: 8, fontWeight: 700, fontSize: 14, color: availability ? 'var(--green)' : 'var(--red)' }}>
                   {availability ? t('product.availableOnDate') : t('product.busyOnDate')}

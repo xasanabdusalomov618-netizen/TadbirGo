@@ -2,8 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { useApp, useAuth, useCart } from '../store';
-import { EmptyState, QtyInput } from '../components';
-import { EVENT_TYPES, locDelivery, locName } from '../utils';
+import { EmptyState, MapPreview, QtyInput } from '../components';
+import { CITIES, EVENT_TYPES, locDelivery, locName } from '../utils';
 
 function DeliveryOptions({ compact }) {
   const { t, lang, fmtMoney } = useApp();
@@ -138,15 +138,20 @@ export function Cart() {
 
 // =================================================================
 export function Checkout() {
-  const { t, lang, fmtMoney, toast } = useApp();
+  const { t, lang, fmtMoney, fmtDate } = useApp();
+  const { user, setUser } = useAuth();
   const cart = useCart();
   const navigate = useNavigate();
+  const [step, setStep] = useState(1);
   const [form, setForm] = useState({
-    event_date: '', event_type: 'toy', location: '', guests: 100,
+    event_date: '', event_type: 'toy', guests: 100,
+    name: user?.name || '', phone: user?.phone || '',
+    city: 'toshkent', address: '',
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const today = new Date().toISOString().slice(0, 10);
+  const city = CITIES.find((c) => c.key === form.city) || null;
 
   if (cart.items.length === 0) {
     return (
@@ -157,19 +162,41 @@ export function Checkout() {
     );
   }
 
+  const STEPS = [
+    { n: 1, label: t('checkout.step1') },
+    { n: 2, label: t('checkout.step2') },
+    { n: 3, label: t('checkout.step3') },
+  ];
+
+  const next = () => {
+    setError('');
+    if (step === 1) {
+      if (!form.event_date || form.event_date < today) { setError(t('checkout.err.date')); return; }
+      if (Number(form.guests) < 0) { setError(t('checkout.err.guests')); return; }
+    }
+    if (step === 2) {
+      if (!form.name.trim() || form.name.trim().length < 2) { setError(t('checkout.err.name')); return; }
+      if (form.address.trim().length < 3) { setError(t('checkout.err.address')); return; }
+    }
+    setStep((x) => Math.min(3, x + 1));
+  };
+
   const submit = async () => {
     setError('');
-    if (!form.event_date || form.location.trim().length < 3) {
-      setError(t('common.required'));
-      return;
-    }
+    const location = `${city?.name || ''}, ${form.address.trim()}`;
     setSubmitting(true);
     try {
+      if (user && (form.name.trim() !== user.name || (form.phone || '') !== (user.phone || ''))) {
+        try {
+          const updated = await api.put('/api/auth/me', { name: form.name.trim(), phone: form.phone.trim() });
+          setUser?.(updated);
+        } catch { /* contact update is optional */ }
+      }
       const d = await api.post('/api/checkout', {
         items: cart.items.map((i) => ({ product_id: i.product_id, quantity: i.quantity })),
         event_date: form.event_date,
         event_type: form.event_type,
-        location: form.location,
+        location,
         guests: Number(form.guests) || 0,
         delivery: cart.delivery,
         installation: cart.installation,
@@ -183,48 +210,110 @@ export function Checkout() {
     }
   };
 
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
   return (
     <div className="container page">
       <h1 className="page__title">📋 {t('checkout.title')}</h1>
+
+      <ol className="stepper" aria-label="steps">
+        {STEPS.map((s) => (
+          <li key={s.n} className={`stepper__item${step === s.n ? ' active' : ''}${step > s.n ? ' done' : ''}`}>
+            <span className="stepper__num">{step > s.n ? '✓' : s.n}</span>
+            <span>{s.label}</span>
+          </li>
+        ))}
+      </ol>
+
       <div className="panel-grid panel-grid--wide">
         <div>
-          <div className="card mb">
-            <h3 className="card__title">🎉 {t('checkout.eventInfo')}</h3>
-            {error && <div className="form-error">{error}</div>}
-            <div className="form-grid">
-              <div className="field">
-                <label>{t('checkout.eventDate')} *</label>
-                <input type="date" className="input" min={today} value={form.event_date}
-                  onChange={(e) => setForm((f) => ({ ...f, event_date: e.target.value }))} />
-              </div>
-              <div className="field">
-                <label>{t('checkout.eventType')}</label>
-                <select className="select" value={form.event_type}
-                  onChange={(e) => setForm((f) => ({ ...f, event_type: e.target.value }))}>
-                  {EVENT_TYPES.map((et) => <option key={et} value={et}>{t(`builder.eventType.${et}`)}</option>)}
-                </select>
-              </div>
-              <div className="field">
-                <label>{t('checkout.location')} *</label>
-                <input type="text" className="input" placeholder={t('builder.locationPh')} value={form.location}
-                  onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))} />
-              </div>
-              <div className="field">
-                <label>{t('checkout.guests')}</label>
-                <input type="number" className="input" min="0" value={form.guests}
-                  onChange={(e) => setForm((f) => ({ ...f, guests: e.target.value }))} />
+          {error && <div className="form-error mb">{error}</div>}
+
+          {step === 1 && (
+            <div className="card mb">
+              <h3 className="card__title">🎉 {t('checkout.eventInfo')}</h3>
+              <div className="form-grid">
+                <div className="field">
+                  <label>{t('checkout.eventDate')} *</label>
+                  <input type="date" className="input" min={today} value={form.event_date} onChange={set('event_date')} />
+                </div>
+                <div className="field">
+                  <label>{t('checkout.eventType')}</label>
+                  <select className="select" value={form.event_type} onChange={set('event_type')}>
+                    {EVENT_TYPES.map((et) => <option key={et} value={et}>{t(`builder.eventType.${et}`)}</option>)}
+                  </select>
+                </div>
+                <div className="field">
+                  <label>{t('checkout.guests')}</label>
+                  <input type="number" className="input" min="0" value={form.guests} onChange={set('guests')} />
+                </div>
               </div>
             </div>
+          )}
+
+          {step === 2 && (
+            <div className="card mb">
+              <h3 className="card__title">📍 {t('checkout.contactLocation')}</h3>
+              <div className="form-grid">
+                <div className="field">
+                  <label>{t('checkout.contactName')} *</label>
+                  <input className="input" value={form.name} onChange={set('name')} />
+                </div>
+                <div className="field">
+                  <label>{t('checkout.contactPhone')}</label>
+                  <input className="input" placeholder="+998 __ ___ __ __" value={form.phone} onChange={set('phone')} />
+                </div>
+                <div className="field">
+                  <label>{t('checkout.city')} *</label>
+                  <select className="select" value={form.city} onChange={set('city')}>
+                    {CITIES.map((c) => <option key={c.key} value={c.key}>{c.name}</option>)}
+                  </select>
+                </div>
+                <div className="field">
+                  <label>{t('checkout.location')} *</label>
+                  <input className="input" placeholder={t('builder.locationPh')} value={form.address} onChange={set('address')} />
+                </div>
+              </div>
+              <div className="mt">
+                <MapPreview city={city} address={form.address} t={t} />
+              </div>
+            </div>
+          )}
+
+          {step === 3 && (
+            <>
+              <div className="card mb">
+                <h3 className="card__title">✅ {t('checkout.review')}</h3>
+                <div className="review-grid">
+                  <div><span className="muted">{t('checkout.eventDate')}</span><strong>{fmtDate(form.event_date)}</strong></div>
+                  <div><span className="muted">{t('checkout.eventType')}</span><strong>{t(`builder.eventType.${form.event_type}`)}</strong></div>
+                  <div><span className="muted">{t('checkout.guests')}</span><strong>{form.guests}</strong></div>
+                  <div><span className="muted">{t('checkout.contactName')}</span><strong>{form.name} {form.phone && `· ${form.phone}`}</strong></div>
+                  <div className="span-2"><span className="muted">{t('checkout.location')}</span><strong>{city?.name}, {form.address}</strong></div>
+                </div>
+                <div className="mt"><MapPreview city={city} address={form.address} t={t} /></div>
+              </div>
+              <div className="card mb"><DeliveryOptions /></div>
+            </>
+          )}
+
+          <div className="wizard-nav">
+            <button className="btn btn--outline" disabled={step === 1} onClick={() => { setError(''); setStep((x) => Math.max(1, x - 1)); }}>
+              ← {t('common.back')}
+            </button>
+            {step < 3 ? (
+              <button className="btn btn--primary" onClick={next}>{t('common.next')} →</button>
+            ) : (
+              <button className="btn btn--primary" onClick={submit} disabled={submitting}>
+                {submitting ? t('checkout.placing') : `✅ ${t('checkout.place')}`}
+              </button>
+            )}
           </div>
-          <div className="card"><DeliveryOptions /></div>
         </div>
 
         <div>
           <CartSummary>
             <div className="muted" style={{ fontSize: 12.5, margin: '8px 0' }}>💳 {t('checkout.payment.hint')}</div>
-            <button className="btn btn--primary btn--block btn--lg" onClick={submit} disabled={submitting}>
-              {submitting ? t('checkout.placing') : `✅ ${t('checkout.place')}`}
-            </button>
           </CartSummary>
           <div className="card mt">
             <h3 className="card__title">{t('bookings.detail.items')}</h3>
@@ -241,7 +330,6 @@ export function Checkout() {
   );
 }
 
-// =================================================================
 export function CheckoutSuccess() {
   const { t, fmtMoney } = useApp();
   const navigate = useNavigate();

@@ -21,6 +21,9 @@ class RegisterIn(BaseModel):
     company_name: str = ""
     location: str = ""
     description: str = ""
+    tax_id: str = ""      # STIR — 9 digits
+    pinfl: str = ""       # PINFL — 14 digits
+    passport: str = ""    # e.g. AA1234567
 
 
 class LoginIn(BaseModel):
@@ -46,8 +49,15 @@ def register(data: RegisterIn):
         raise HTTPException(422, "Noto'g'ri rol")
     if db.query_one("SELECT id FROM users WHERE email=?", (data.email,)):
         raise HTTPException(409, "Bu email allaqachon ro'yxatdan o'tgan")
-    if data.role == "seller" and len(data.company_name.strip()) < 2:
-        raise HTTPException(422, "Do'kon nomini kiriting")
+    if data.role == "seller":
+        if len(data.company_name.strip()) < 2:
+            raise HTTPException(422, "Do'kon nomini kiriting")
+        if not re.fullmatch(r"\d{9}", data.tax_id.strip()):
+            raise HTTPException(422, "STIR 9 ta raqamdan iborat bo'lishi kerak")
+        if not re.fullmatch(r"\d{14}", data.pinfl.strip()):
+            raise HTTPException(422, "PINFL 14 ta raqamdan iborat bo'lishi kerak")
+        if not re.fullmatch(r"[A-Za-z]{2}\d{7}", data.passport.strip()):
+            raise HTTPException(422, "Pasport seriya va raqami noto'g'ri (masalan AA1234567)")
 
     uid = db.execute(
         "INSERT INTO users(name,email,password_hash,phone,role,created_at) VALUES(?,?,?,?,?,?)",
@@ -56,10 +66,11 @@ def register(data: RegisterIn):
     )
     if data.role == "seller":
         db.execute(
-            "INSERT INTO seller_profiles(user_id,company_name,description,location,phone,approved,created_at)"
-            " VALUES(?,?,?,?,?,0,?)",
+            "INSERT INTO seller_profiles(user_id,company_name,description,location,phone,approved,created_at,"
+            "tax_id,pinfl,passport,verification_status)"
+            " VALUES(?,?,?,?,?,0,?,?,?,?,'pending')",
             (uid, data.company_name.strip(), data.description.strip(), data.location.strip(),
-             data.phone.strip(), db.now()),
+             data.phone.strip(), db.now(), data.tax_id.strip(), data.pinfl.strip(), data.passport.strip().upper()),
         )
         admin = db.query("SELECT id FROM users WHERE role='admin'")
         for a in admin:
