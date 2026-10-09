@@ -1,21 +1,82 @@
-# EventBox UZ
+# 🎉 TadbirGo / EventBox UZ
 
-**Tadbiringizni 10 daqiqada yig‘ing** — to‘y, tug‘ilgan kun, korporativ va boshqa tadbirlar uchun
-jihoz va xizmatlar marketpleysi. O‘zbekiston bo‘ylab: Toshkent, Samarqand, Andijon, Buxoro, Farg‘ona,
-Namangan, Xorazm.
-
-A full-stack, production-ready marketplace: real authentication, a relational database, CRUD for every
-entity, a package builder, availability calendar, cart → checkout → booking lifecycle, seller and admin
-dashboards with analytics, monetisation, dark mode and a 3-language interface (O‘zbek / Русский / English)
-in a **Soft UI (neumorphic)** design system.
+**Tadbiringizni 10 daqiqada yig‘ing** — to‘y, tug‘ilgan kun va korporativ tadbirlar uchun jihoz va
+xizmatlarni (stol-stul, chodir, dekor, fotozona, audio, yorug‘lik, fotograf, DJ, catering va h.k.)
+**bitta platformadan** topish, bron qilish va yetkazib olish marketpleysi. O‘zbekiston bo‘ylab:
+Toshkent, Samarqand, Andijon, Buxoro, Farg‘ona, Namangan, Xorazm.
 
 ---
 
-## ✨ Asosiy imkoniyatlar / Key features
+## ⚠️ Bu repoda ikki implementatsiya bor
+
+Loyiha ikki mustaqil stack’da yozilgan — ikkalasi ham to‘liq ishlaydi, bir xil ma’lumotlar modeli va
+bir xil mahsulot mantig‘iga ega. Qaysi birini ishlatish sizga qoladi:
+
+| | **A — FastAPI (Python)** | **B — Express (Node.js)** |
+|---|---|---|
+| Backend | Python 3 + FastAPI + SQLite | Node.js 22 (ESM) + Express 4 + SQLite (`node:sqlite`) |
+| Frontend | `frontend/` — React 18 + Vite | `client/` — React 18 + Vite + Tailwind (Soft UI) |
+| Portlar | API `8000` (frontend build’ni o‘zi beradi), Vite `5173` | API `4000`, Vite `5173` (`/api` proksi) |
+| Validatsiya | Pydantic | Zod |
+| Ishga tushirish | `uvicorn server.main:app` | `npm run dev` |
+
+Papkalar bir-biriga aralashmaydi: **`server/`** papkasida ikkala backend’ning fayllari yonma-yon turadi
+(`server/main.py`, `server/api/*.py` — Python; `server/index.js`, `server/routes/*.js` — Node).
+`frontend/` faqat A’ga, `client/` va `public/` faqat B’ga tegishli.
+
+---
+
+# 🅰️ A. FastAPI implementatsiyasi (Python)
+
+## ✨ Asosiy imkoniyatlar
+- 🛍 **Katalog** — 15 kategoriya, qidiruv, kategoriya/manzil/narx/sana bo‘yicha filtrlar
+- 🧩 **Paket tuzuvchi** — tadbir turi, mehmonlar soni va byudjetni kiriting; tizim byudjetga mos
+  to‘plamni avtomatik yig‘adi
+- 🛒 **Savat va checkout** — yetkazib berish (standart/express), o‘rnatish va tadbirdan keyin olib ketish
+- 📦 **Buyurtma holati** — 9 bosqich: Yangi → Tasdiqlanishni kutmoqda → Tasdiqlandi → Tayyorlanmoqda →
+  Yetkazilmoqda → O‘rnatilmoqda → Tadbir jarayonida → Yakunlandi / Bekor qilindi
+- ⭐ **Reyting va sharhlar** — yakunlangan buyurtmalardan keyin baho
+- 🏪 **Sotuvchi paneli** — mahsulot qo‘shish (rasm yuklash, narx, band sanalar), buyurtmalarni
+  qabul/rad qilish, daromad va komissiya statistikasi, Premium obuna va reklama (featured)
+- ⚙️ **Admin panel** — foydalanuvchilar, sotuvchilarni tasdiqlash, mahsulotlarni moderatsiya,
+  platforma statistikasi va oylik daromad grafigi
+- 🌗 **Tun/Kun rejimi** va 🌐 **3 til**: O‘zbekcha, Русский, English
+
+## 🔑 Demo hisoblar (A)
+
+| Rol | Email | Parol |
+|---|---|---|
+| Admin | `admin@tadbirgo.uz` | `admin123` |
+| Sotuvchi | `seller1@tadbirgo.uz` | `tadbir123` |
+| Mijoz | `mijoz@tadbirgo.uz` | `mijoz123` |
+
+## 🚀 Ishga tushirish (A)
+
+```bash
+# Backend — API + build qilingan frontend 8000-portda
+python3 -m uvicorn server.main:app --host 0.0.0.0 --port 8000
+
+# Frontend development (ixtiyoriy)
+cd frontend && npm install && npm run dev
+```
+
+Birinchi ishga tushirishda baza avtomatik yaratiladi va O‘zbek demo ma’lumotlari bilan to‘ldiriladi
+(11 sotuvchi, 22 mahsulot, namunaviy buyurtmalar). Smoke test: `python3 scripts/smoke_test.py`.
+
+---
+
+# 🅱️ B. Express implementatsiyasi (Node.js)
+
+Production-ready marketplace: real autentifikatsiya, relyatsion baza, har bir entity uchun CRUD,
+paket konstruktori, mavjudlik kalendari, savat → checkout → buyurtma hayoti, sotuvchi va admin
+panellari analitikasi, monetizatsiya, tungi rejim va 3 tilli interfeys — **Soft UI (neumorphic)**
+dizayn tizimida.
+
+## ✨ Asosiy imkoniyatlar
 
 ### Mijoz (Customer)
 - Ro‘yxatdan o‘tish va kirish (JWT, httpOnly cookie)
-- Qidirish + filtrlash: kategoriya, shahar, narx oralig‘i, sana bo‘yicha mavjudlik
+- Qidirish + filtrlash: kategoriya, shahar, narx oralig‘i, sana bo‘yicha mavjudlik, sotuvchi
 - E’lon sahifasi: galereya, sotuvchi, sharhlar, sana tekshiruvi, miqdor hisob-kitobi
 - **Paket konstruktori** — mehmonlar soni, sana, shahar va byudjet bo‘yicha to‘liq tadbir paketi
 - Savat, yetkazib berish (standart / tezkor), o‘rnatish, tadbirdan keyin olib ketish
@@ -35,43 +96,29 @@ in a **Soft UI (neumorphic)** design system.
 - Foydalanuvchilarni boshqarish (rol, bloklash), sotuvchi va e’lonlarni tasdiqlash, e’lonni o‘chirish
 - Reklama slotlari va moliyaviy hisobot (ledger)
 
-### Monetizatsiya
-| Manba | Tavsif |
-|---|---|
-| Komissiya | 10–20% (standart 12%, Premium 8%) |
-| Premium obuna | 299 000 so‘m / oy |
-| TOP e’lon | 149 000 so‘m / 30 kun |
-| Yetkazib berish | masofaga qarab (baza + km) |
-| O‘rnatish | qo‘shimcha xizmat |
-| Reklama | banner slotlari (home / explore / sidebar) |
-
----
-
-## 🛠 Texnologiyalar / Stack
+## 🛠 Texnologiyalar
 
 | Qatlam | Texnologiya |
 |---|---|
 | Frontend | React 18, Vite 5, React Router 6, Tailwind CSS 3, Recharts, Lucide icons, react-i18next |
 | Backend | Node.js 22 (ESM), Express 4, Zod validation, Multer (uploads), JWT + bcryptjs |
-| Database | SQLite through Node's built-in `node:sqlite` (zero native compilation) — 16 relational tables |
-| Design | Custom Soft UI (neumorphic) design tokens, light + dark themes, 3 languages |
+| Database | SQLite — Node’ning o‘rnatilgan `node:sqlite` moduli orqali (native kompilyatsiyasiz), 16 jadval |
+| Design | Soft UI (neumorphic) dizayn tokenlari, yorug‘ + tungi mavzu, 3 til |
 
----
-
-## 🚀 Ishga tushirish / Getting started
+## 🚀 Ishga tushirish (B)
 
 ```bash
-npm install     # install dependencies
-npm run dev     # API on :4000 + Vite dev server on :5173 (proxied /api and /media)
-npm run seed    # rebuild demo data (add -- --force to wipe & reseed)
+npm install     # bog'liqliklarni o'rnatish
+npm run dev     # API :4000 + Vite dev server :5173 (/api va /media proksi orqali)
+npm run seed    # demo ma'lumotlarni qayta yaratish (-- --force bilan tozalab qayta urug'lantirish)
 npm run build   # production bundle
-npm start       # serve the built app + API from Express (port 4000)
+npm start       # build qilingan app + API Express orqali (:4000)
 ```
 
-Open <http://localhost:5173> — the Vite dev server proxies `/api` and `/media` to the Express API,
-so authentication cookies work on a single origin.
+<http://localhost:5173> — Vite dev serveri `/api` va `/media`’ni Express API’ga proksi qiladi, shuning
+uchun autentifikatsiya cookie’lari bitta origin’da ishlaydi.
 
-### Demo accounts
+### Demo hisoblar (B)
 
 | Rol | Email | Parol |
 |---|---|---|
@@ -79,60 +126,21 @@ so authentication cookies work on a single origin.
 | Sotuvchi | `seller@eventbox.uz` | `seller123` |
 | Mijoz | `customer@eventbox.uz` | `customer123` |
 
-The login screen has one-click buttons that fill these in.
+Kirish sahifasida bu hisoblarni bir bosish bilan to‘ldiradigan tugmalar bor.
 
-### Seed data
-15 categories, 10 verified sellers, 32 listings with generated artwork, availability records,
-10 bookings across the whole lifecycle, reviews, notifications, packages, payments and ad slots.
+### Seed ma’lumotlari
+15 kategoriya, 10 tasdiqlangan sotuvchi (1 tasi tasdiq kutmoqda), 32 e’lon (generatsiya qilingin
+rasmlar bilan), mavjudlik yozuvlari, butun hayot sikli bo‘ylab 10 buyurtma, sharhlar,
+bildirishnomalar, paketlar, to‘lovlar va reklama slotlari.
 
----
-
-## 🗄 Ma'lumotlar bazasi / Database schema
-
-```
-users              seller_profiles     categories        products
-product_images     availability        delivery_options  bookings
-booking_items      event_packages      package_items     reviews
-payments           notifications       subscriptions     advertisements
-```
-
-Relations are enforced with foreign keys (`PRAGMA foreign_keys = ON`), cascades where appropriate,
-and indexes on the hot lookup paths (seller, category, city, booking, availability, notifications).
-
-### Booking statuses
-`yangi → pending → confirmed → preparing → delivering → installing → ongoing → completed`
-plus `cancelled` (seller rejects or customer cancels; reserved dates are released automatically).
-
----
-
-## 🔐 Xavfsizlik / Security
-- Passwords hashed with bcrypt (cost 10); **passwords are never returned by any endpoint**
-- JWT in an `httpOnly`, `SameSite=Lax` cookie (Secure when served over HTTPS)
-- Central `optionalAuth` → `requireAuth` → `requireRole('admin')` / `requireSeller` middleware chain
-- Every mutating endpoint validates its payload with Zod; validation errors come back per field
-- Parameterised SQL everywhere (no string interpolation of user input)
-- Ownership checks: sellers only see/edit their own listings and bookings
-- Uploads are type- and size-limited (images only, ≤ 5 MB)
-
----
-
-## 🌍 Til va mavzu / Language & theme
-- **Languages:** O‘zbek (default), Русский, English — switchable from the navbar; the choice is
-  persisted in `localStorage` and on the user profile
-- **Themes:** Light and dark Soft UI — follows the OS preference on first visit, toggle in the navbar,
-  persisted per user
-- Category and delivery-option names are stored in all three languages in the database
-
----
-
-## 📡 API overview
+## 📡 API overview (B)
 
 ```
 POST   /api/auth/register | /login | /logout      PATCH /api/auth/me      POST /api/auth/password
 GET    /api/categories                            (admin: POST / PUT / DELETE)
-GET    /api/products                              (search, filters, sort, pagination)
-GET    /api/products/recommendations              (package builder engine)
-GET    /api/products/:id  |  /:id/availability    (seller: POST / PUT / PATCH / DELETE)
+GET    /api/products                              (qidiruv, filtrlar, saralash, sahifalash)
+GET    /api/products/recommendations              (paket konstruktori dvigateli)
+GET    /api/products/:id  |  /:id/availability    (sotuvchi: POST / PUT / PATCH / DELETE)
 GET    /api/sellers  |  /api/sellers/:slug        GET|PATCH /api/sellers/me
 POST   /api/sellers/me/premium | /payout          GET /api/sellers/me/products
 GET    /api/delivery-options
@@ -146,10 +154,58 @@ POST   /api/upload (multipart)
 
 ---
 
-## 📁 Loyiha tuzilishi / Project structure
+## 🗄 Ma’lumotlar bazasi (ikkala implementatsiya uchun umumiy model)
 
 ```
-server/          Express API — routes, middleware, seed, schema.sql, db.js
-client/          React app — pages, components, contexts, i18n locales
-public/media/    Generated product artwork + uploaded images
+users              seller_profiles     categories        products
+product_images     availability        delivery_options  bookings
+booking_items      event_packages      package_items     reviews
+payments           notifications       subscriptions     advertisements
+```
+
+Aloqalar foreign key’lar bilan ta’minlangan (`PRAGMA foreign_keys = ON`), kerakli joylarda kaskadlar,
+va tez-tez ishlatiladigan so‘rovlar uchun indekslar (seller, category, city, booking, availability,
+notifications).
+
+### Buyurtma statuslari
+`yangi → pending → confirmed → preparing → delivering → installing → ongoing → completed`
+va `cancelled` (sotuvchi rad etsa yoki mijoz bekor qilsa; band sanalar avtomatik bo‘shatiladi).
+
+## 💰 Monetizatsiya
+
+| Manba | Tavsif |
+|---|---|
+| Komissiya | 10–20% (standart 12%, Premium 8%) |
+| Premium obuna | 299 000 so‘m / oy |
+| TOP e’lon | 149 000 so‘m / 30 kun |
+| Yetkazib berish | masofaga qarab (baza + km) |
+| O‘rnatish | qo‘shimcha xizmat |
+| Reklama | banner slotlari (home / explore / sidebar) |
+
+## 🔐 Xavfsizlik
+- Parollar bcrypt bilan hashlanadi (cost 10); **hech bir endpoint parolni qaytarmaydi**
+- JWT `httpOnly`, `SameSite=Lax` cookie’da (HTTPS orqali `Secure`)
+- Markaziy `optionalAuth` → `requireAuth` → `requireRole('admin')` / `requireSeller` middleware zanjiri
+- Har bir o‘zgartiruvchi endpoint payload’ni Zod/Pydantic bilan validatsiya qiladi
+- Hamma joyda parametrlangan SQL (foydalanuvchi kiritgan ma’lumot string interpolatsiya qilinmaydi)
+- Egalik tekshiruvlari: sotuvchi faqat o‘z e’lonlari va buyurtmalarini ko‘radi/o‘zgartiradi
+- Yuklamalar turi va hajmi bo‘yicha cheklangan (faqat rasm, ≤ 5 MB)
+
+## 🌍 Til va mavzu
+- **Tillar:** O‘zbek (default), Русский, English — navbar’dan almashtiriladi; tanlov `localStorage`’da
+  va foydalanuvchi profilida saqlanadi
+- **Mavzular:** Yorug‘ va tungi Soft UI — birinchi tashrifda OS sozlamasiga ergashadi, navbar’dan
+  almashtiriladi
+- Kategoriya va yetkazib berish turlarining nomlari bazada uchala tilda saqlanadi
+
+## 📁 Loyiha tuzilishi
+
+```
+server/          Ikkala backend: server/main.py + server/api/*.py (A) va
+                 server/index.js + server/routes/*.js (B)
+frontend/        A implementatsiyasining React ilovasi
+client/          B implementatsiyasining React ilovasi (pages, components, contexts, i18n)
+public/media/    Generatsiya qilingan mahsulot rasmlari va yuklangan fayllar
+media/seed/      A implementatsiyasi uchun demo rasmlar
+scripts/         A implementatsiyasi uchun smoke test (Python)
 ```
